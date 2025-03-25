@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>银河奶牛放置快报</title>
+    <style>
+        body {
+            background: rgb(19, 20, 25) url('background.svg') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .report-btn {
+            /* 保留原有基础样式 */
+            padding: 0 10px;
+            /* 替换原有padding */
+            background: rgb(67, 87, 175);
+            /* 新的主题色 */
+            color: rgb(231, 231, 231);
+            cursor: pointer;
+            user-select: none;
+            transition: filter 0.2s;
+            /* 新增布局属性 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 50px;
+            border-radius: 8px;
+            height: 40px;
+            box-shadow: none;
+            font-family: Roboto;
+            font-size: 14px;
+            font-weight: 600;
+
+            .report-btn:focus {
+                outline: none;
+                /* 移除聚焦轮廓 */
+            }
+
+            .report-btn:active {
+                filter: brightness(0.95);
+                /* 替代点击效果 */
+            }
+
+            /* 其他优化属性 */
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        .report-btn:hover {
+            background: rgb(86, 107, 195);
+            /* 匹配新主题色的悬停效果 */
+        }
+
+        .image-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #report-image {
+            max-width: 100%;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: azure;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>银河奶牛放置快报</h1>
+        <div class="button-group" id="buttonContainer"></div>
+        <div class="image-container">
+            <img id="report-image" alt="报告图片">
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://www.superbed.cn/timeline?categories=&filename=&_id=&f=json&token=693ec308a1a5465db1f44030b55e77fb";
+
+        async function init() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                createButtons(data.docs);
+                // 新增默认展示逻辑
+                autoShowDefault(data.docs);
+            } catch (error) {
+                alert('数据加载失败，请稍后重试');
+            }
+        }
+
+        function createButtons(docs) {
+            const buttonContainer = document.getElementById('buttonContainer');
+            const reports = new Set();
+
+            docs.forEach(doc => {
+                const [type, name] = doc.filename.split('-').slice(0, 2);
+                if (type === 'we') return;
+
+                const reportName = type === 'default' ? name : `${type}-${name}`;
+                reports.add(reportName);
+            });
+
+            reports.forEach(reportName => {
+                const div = document.createElement('div');  // 改用 div 元素
+                div.className = 'report-btn';
+                div.textContent = reportName;
+                div.setAttribute('role', 'button');         // 保持可访问性
+                div.setAttribute('tabindex', '0');          // 允许聚焦
+                div.onclick = () => showReportImage(reportName, docs);
+                buttonContainer.appendChild(div);
+            });
+        }
+        // 新增自动展示函数
+        function autoShowDefault(docs) {
+            const defaultReport = '利润指数';
+            const targetDoc = docs.find(doc =>
+                doc.filename.startsWith(`default-${defaultReport}`) ||
+                doc.filename.includes(`-${defaultReport}-`)
+            );
+
+            if (targetDoc) {
+                const imgElement = document.getElementById('report-image');
+                imgElement.src = targetDoc.url;
+                imgElement.alt = targetDoc.filename;
+            }
+        }
+        // 显示对应报告图片
+        function showReportImage(target, docs) {
+            const [type, ...nameParts] = target.includes('-') ?
+                target.split('-') :
+                ['default', target];
+
+            const searchName = type === 'default' ?
+                `${type}-${nameParts.join('-')}` :
+                target;
+
+            const foundDoc = docs.find(doc => {
+                const filenameParts = doc.filename.split('-');
+                return filenameParts.slice(0, 2).join('-') === searchName;
+            });
+
+            const imgElement = document.getElementById('report-image');
+            if (foundDoc) {
+                imgElement.src = foundDoc.url;
+                imgElement.alt = foundDoc.filename;
+            } else {
+                imgElement.src = '';
+                alert('未找到相关报告');
+            }
+        }
+
+        // 启动初始化
+        window.onload = init;
+    </script>
+</body>
+
+</html>
